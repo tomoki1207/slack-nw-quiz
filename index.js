@@ -103,15 +103,16 @@ controller.on('interactive_message_callback', function (bot, message) {
     var collect = message.actions[0].name === 'collect';
     var text = '';
     if (collect) {
-      text = ':white_check_mark: @' + message.user.name + ' 正解!';
+      text = ':white_check_mark: <@' + message.user + '> 正解!';
     } else {
-      text = ':x: @' + message.user.name + ' 残念…';
+      text = ':x: <@' + message.user + '> 残念…';
     }
 
     bot.replyInteractive(message, {
       'attachments': [{
         'title': text,
-        'color': collect ? 'good' : 'danger'
+        'color': collect ? 'good' : 'danger',
+        'icon_url': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/IPA_logo.png/800px-IPA_logo.png',
       }],
       'replace_original': false
     });
@@ -148,6 +149,7 @@ var generateQuiz = function (cb) {
           'fallback': '失敗しました。',
           'callback_id': 'nw_answer',
           'color': '#808080',
+          'icon_url': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/IPA_logo.png/800px-IPA_logo.png',
           'actions': anss
         }]
       });
