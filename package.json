@@ -1,0 +1,28 @@
+{
+  "name": "slack-nw-quiz",
+  "version": "0.0.1",
+  "description": "Show IPA-NW quiz with message button on slack",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://develop.ktsystem.jp/gitbucket/git/t_maruyama/ipa-nw-bot.git"
+  },
+  "author": "tomoki1207",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://develop.ktsystem.jp/gitbucket/git/t_maruyama/ipa-nw-bot.git"
+  },
+  "homepage": "https://develop.ktsystem.jp/gitbucket/git/t_maruyama/ipa-nw-bot.git#readme",
+  "devDependencies": {
+    "eslint": "^3.3.1",
+    "eslint-plugin-node": "^2.0.0"
+  },
+  "dependencies": {
+    "botkit": "^0.2.2",
+    "cheerio-httpcli": "^0.6.8",
+    "request": "^2.74.0"
+  }
+}
