@@ -163,13 +163,14 @@ var generateQuiz = function (cb) {
       var no = $('.qno').text();
       var q = $('.qno + div').text() + '\n\n';
       var anss = [];
-      $('li.fl').each(function () {
-        var li = $(this);
-        q += li.find('.selectBtn > button').text() + (li.find('div') ? ('.  ' + li.find('div').text()) : '') + '\n';
+      $('.selectBtn').each(function () {
+        var btn = $(this);
+        var txt = btn.prev('div');
+        q += btn.text() + (txt ? ('.  ' + txt.text()) : '') + '\n';
         anss.push({
           'type': 'button',
-          'name': li.find('.selectBtn').attr('id') ? 'collect' : 'wrong',
-          'text': li.find('.selectBtn > button').text()
+          'name': btn.attr('id') ? 'collect' : 'wrong',
+          'text': btn.find('button').text()
         });
       });
 
