@@ -56,7 +56,7 @@ controller.on('create_bot', function (bot, config) {
         trackBot(bot);
       }
 
-      bot.startPrivateConversation({ user: config.createdBy }, function (err, convo) {
+      bot.startPrivateConversation({user: config.createdBy}, function (err, convo) {
         if (err) {
           console.log(err);
         } else {
@@ -148,7 +148,7 @@ controller.on('interactive_message_callback', function (bot, message) {
       'response_type': 'in_channel',
       'replace_original': false,
     });
-  };
+  }
 });
 
 var generateQuiz = function (cb) {
