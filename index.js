@@ -1,6 +1,7 @@
 var Botkit = require('botkit');
 var cheerio = require('cheerio-httpcli');
-var s3 = require('./s3_storage');
+var s3Storage = require('./s3_storage');
+var cronJob = require('cron').CronJob;
 
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
   console.log('Error: Specify clientId clientSecret and port in environment');
@@ -10,19 +11,17 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
 var controller = Botkit.slackbot({
   // interactive_replies: true, // tells botkit to send button clicks into conversations
   //json_file_store: './db_slackbutton_bot/',
-  storage: new s3({
+  storage: new s3Storage({
     path: process.env.s3Path,
     bucket: process.env.s3Bucket,
     accessKey: process.env.s3AccessKey,
     secretKey: process.env.s3SecretKey
   })
-}).configureSlackApp(
-  {
-    clientId: process.env.clientId,
-    clientSecret: process.env.clientSecret,
-    scopes: ['bot'],
-  }
-  );
+}).configureSlackApp({
+  clientId: process.env.clientId,
+  clientSecret: process.env.clientSecret,
+  scopes: ['bot'],
+});
 
 controller.setupWebserver(process.env.port, function (err, webserver) {
   controller.createWebhookEndpoints(controller.webserver);
@@ -43,6 +42,17 @@ function trackBot(bot) {
   _bots[bot.config.token] = bot;
 }
 
+// cron
+var quizCron = new cronJob({
+  cronTime: '0 0 9,13,18 * * 1-5',
+  onTick: function () {
+    generateQuiz(function (reply) {
+      reply.channel = 'ipa-nw';
+      bot.say(reply);
+    });
+  },
+  timeZone: 'Asia/Tokyo'
+});
 
 controller.on('create_bot', function (bot, config) {
 
@@ -91,11 +101,19 @@ controller.storage.teams.all(function (err, teams) {
 // Handle events related to the websocket connection to Slack
 controller.on('rtm_open', function (bot) {
   console.log('** The RTM api just connected!');
+
+  // start cron
+  console.log('** Start quiz cron.')
+  quizCron.start();
 });
 
 controller.on('rtm_close', function (bot) {
   console.log('** The RTM api just closed');
   // you may want to attempt to re-open
+  
+  // stop cron
+  console.log('** Stop quiz cron.')
+  quizCron.stop();
 });
 
 controller.hears('quiz', ['direct_message', 'direct_mention'], function (bot, message) {
