@@ -43,16 +43,7 @@ function trackBot(bot) {
 }
 
 // cron
-var quizCron = new cronJob({
-  cronTime: '0 0 9,13,18 * * 1-5',
-  onTick: function () {
-    generateQuiz(function (reply) {
-      reply.channel = 'ipa-nw';
-      bot.say(reply);
-    });
-  },
-  timeZone: 'Asia/Tokyo'
-});
+var quizCron = {};
 
 controller.on('create_bot', function (bot, config) {
 
@@ -103,17 +94,29 @@ controller.on('rtm_open', function (bot) {
   console.log('** The RTM api just connected!');
 
   // start cron
-  console.log('** Start quiz cron.')
-  quizCron.start();
+  console.log('** Start quiz cron.');
+  quizCron = new cronJob({
+    cronTime: '0 0 9,13,18 * * 1-5',
+    onTick: function () {
+      generateQuiz(function (reply) {
+        reply.channel = 'ipa-nw';
+        bot.say(reply);
+      });
+    },
+    start: true,
+    timeZone: 'Asia/Tokyo'
+  });
 });
 
 controller.on('rtm_close', function (bot) {
   console.log('** The RTM api just closed');
   // you may want to attempt to re-open
-  
+
   // stop cron
-  console.log('** Stop quiz cron.')
-  quizCron.stop();
+  console.log('** Stop quiz cron.');
+  if (quizCron) {
+    quizCron.stop();
+  }
 });
 
 controller.hears('quiz', ['direct_message', 'direct_mention'], function (bot, message) {
@@ -132,13 +135,18 @@ controller.on('interactive_message_callback', function (bot, message) {
       text = ':x: <@' + message.user + '> 残念…';
     }
 
+    var original = message.original_message;
+
     bot.replyInteractive(message, {
+      'text': original.text,
       'attachments': [{
-        'title': text,
-        'color': collect ? 'good' : 'danger',
-        'icon_url': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/IPA_logo.png/800px-IPA_logo.png',
+        'text': text,
+        'fallback': '失敗しました。',
+        'callback_id': 'nw_answer',
+        'color': collect ? 'good' : 'danger'
       }],
-      'replace_original': false
+      'response_type': 'in_channel',
+      'replace_original': false,
     });
   };
 });
@@ -155,9 +163,9 @@ var generateQuiz = function (cb) {
       var no = $('.qno').text();
       var q = $('.qno + div').text() + '\n\n';
       var anss = [];
-      $('ul.selectList > li').each(function () {
+      $('li.fl').each(function () {
         var li = $(this);
-        q += li.find('.selectBtn > button').text() + '.  ' + (li.find('div') ? li.find('div').text() : '') + '\n';
+        q += li.find('.selectBtn > button').text() + (li.find('div') ? ('.  ' + li.find('div').text()) : '') + '\n';
         anss.push({
           'type': 'button',
           'name': li.find('.selectBtn').attr('id') ? 'collect' : 'wrong',
@@ -173,7 +181,6 @@ var generateQuiz = function (cb) {
           'fallback': '失敗しました。',
           'callback_id': 'nw_answer',
           'color': '#808080',
-          'icon_url': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/IPA_logo.png/800px-IPA_logo.png',
           'actions': anss
         }]
       });
