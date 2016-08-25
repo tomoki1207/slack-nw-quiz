@@ -1,5 +1,6 @@
 var Botkit = require('botkit');
 var cheerio = require('cheerio-httpcli');
+var s3 = require('./s3_storage');
 
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
   console.log('Error: Specify clientId clientSecret and port in environment');
@@ -8,7 +9,13 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
 
 var controller = Botkit.slackbot({
   // interactive_replies: true, // tells botkit to send button clicks into conversations
-  json_file_store: './db_slackbutton_bot/',
+  //json_file_store: './db_slackbutton_bot/',
+  storage: new s3({
+    path: process.env.s3Path,
+    bucket: process.env.s3Bucket,
+    accessKey: process.env.s3AccessKey,
+    secretKey: process.env.s3SecretKey
+  })
 }).configureSlackApp(
   {
     clientId: process.env.clientId,
@@ -98,7 +105,6 @@ controller.hears('quiz', ['direct_message', 'direct_mention'], function (bot, me
 });
 
 controller.on('interactive_message_callback', function (bot, message) {
-  console.log(message);
   if (message.callback_id === 'nw_answer') {
     var collect = message.actions[0].name === 'collect';
     var text = '';
