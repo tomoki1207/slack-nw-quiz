@@ -1,4 +1,5 @@
 var Botkit = require('botkit');
+var HerokuKeepalive = require('@ponko2/botkit-heroku-keepalive');
 var cheerio = require('cheerio-httpcli');
 var s3Storage = require('./s3_storage');
 var cronJob = require('cron').CronJob;
@@ -23,6 +24,8 @@ var controller = Botkit.slackbot({
   scopes: ['bot'],
 });
 
+var herokuKeepalive;
+
 controller.setupWebserver(process.env.port, function (err, webserver) {
   controller.createWebhookEndpoints(controller.webserver);
 
@@ -33,6 +36,8 @@ controller.setupWebserver(process.env.port, function (err, webserver) {
       res.send('Success!');
     }
   });
+
+  herokuKeepalive = new HerokuKeepalive(controller);
 });
 
 // just a simple way to make sure we don't
@@ -93,6 +98,8 @@ controller.storage.teams.all(function (err, teams) {
 controller.on('rtm_open', function (bot) {
   console.log('** The RTM api just connected!');
 
+  herokuKeepalive.start();
+
   // start cron
   console.log('** Start quiz cron.');
   quizCron = new cronJob({
@@ -104,7 +111,7 @@ controller.on('rtm_open', function (bot) {
       });
     },
     start: true,
-    timeZone: 'Asia/Tokyo'
+    timeZone: process.env.TZ
   });
 });
 

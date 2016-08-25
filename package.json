@@ -21,6 +21,7 @@
     "eslint-plugin-node": "^2.0.0"
   },
   "dependencies": {
+    "@ponko2/botkit-heroku-keepalive": "^0.8.0",
     "aws-sdk": "^2.5.3",
     "botkit": "^0.2.2",
     "cheerio-httpcli": "^0.6.8",
