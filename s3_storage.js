@@ -52,9 +52,9 @@ module.exports = function (config) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#putObject-property
     s3.putObject(param, function (err, data) {
       if (err) {
-        return (cb != null) ? cb(err) : err;
+        return cb ? cb(err) : err;
       }
-      return (cb != null) ? cb(null, data) : data;
+      return cb ? cb(null, data) : data;
     });
   };
   var get = function (id, cb) {
@@ -65,10 +65,10 @@ module.exports = function (config) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#getObject-property
     s3.getObject(param, function (err, data) {
       if (err) {
-        return (cb != null) ? cb(err) : err;
+        return cb ? cb(err) : err;
       }
       var obj = JSON.parse(data.Body.toString());
-      return (cb != null) ? cb(null, obj) : obj;
+      return cb ? cb(null, obj) : obj;
     });
   };
   var list = function (prefix, cb) {
@@ -79,7 +79,7 @@ module.exports = function (config) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#listObjects-property
     s3.listObjects(param, function (err, data) {
       if (err) {
-        return (cb != null) ? cb(err) : err;
+        return cb ? cb(err) : err;
       }
 
       var all = {};
@@ -97,8 +97,8 @@ module.exports = function (config) {
         })(content.Key));
       });
 
-      return async.parallel(funcs, function (error, results) {
-        return (cb != null) ? cb(error, all) : all;
+      return async.parallel(funcs, function (error) {
+        return cb ? cb(error, all) : all;
       });
     });
   };
