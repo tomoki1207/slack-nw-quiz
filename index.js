@@ -151,8 +151,8 @@ controller.hears('quiz', ['direct_message', 'direct_mention'], function (bot, me
     bot.reply(message, reply);
   });
 });
-controller.hears('3min', ['direct_message', 'direct_mention'], function (bot, message) {
-  var no = Math.floor(Math.ramdom() * 81);
+controller.hears('hima', ['direct_message', 'direct_mention'], function (bot, message) {
+  var no = Math.floor(Math.random() * 81);
   post3minArticle(bot, no, message);
 });
 
