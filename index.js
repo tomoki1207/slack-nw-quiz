@@ -218,7 +218,7 @@ var generateQuiz = function (cb) {
             'fallback': url,
             'image_url': process.env.HEROKU_URL + 'image?url=' + url,
             'color': '#808080',
-            'callback_id': 'db_answer',
+            'callback_id': 'nw_answer',
             'actions': [ans]
           };
           anss.push(att);
