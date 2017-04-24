@@ -140,9 +140,12 @@ controller.on('rtm_close', function (bot) {
   // you may want to attempt to re-open
 
   // stop cron
-  console.log('** Stop quiz cron.');
+  console.log('** Stop crons.');
   if (quizCron) {
     quizCron.stop();
+  }
+  if (threeMinCron) {
+    threeMinCron.stop();
   }
 });
 
