@@ -230,7 +230,7 @@ var generateQuiz = function (cb) {
         'title': q,
         'text': '\n\n詳細や画像が表示されていない場合はこちらへ\n' + link,
         'fallback': q,
-        'callback_id': 'db_answer',
+        'callback_id': 'nw_answer',
         'color': 'good'
       });
 
