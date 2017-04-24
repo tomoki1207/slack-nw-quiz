@@ -1,8 +1,9 @@
 var Botkit = require('botkit');
 var HerokuKeepalive = require('@ponko2/botkit-heroku-keepalive');
 var cheerio = require('cheerio-httpcli');
-var s3Storage = require('./s3_storage');
+var mongoStorage = require('botkit-storage-mongo')({mongoUri: process.env.MONGODB_URI});
 var cronJob = require('cron').CronJob;
+var request = require('request');
 
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
   console.log('Error: Specify clientId clientSecret and port in environment');
@@ -10,14 +11,7 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port) {
 }
 
 var controller = Botkit.slackbot({
-  // interactive_replies: true, // tells botkit to send button clicks into conversations
-  //json_file_store: './db_slackbutton_bot/',
-  storage: new s3Storage({
-    path: process.env.s3Path,
-    bucket: process.env.s3Bucket,
-    accessKey: process.env.s3AccessKey,
-    secretKey: process.env.s3SecretKey
-  })
+  storage: mongoStorage
 }).configureSlackApp({
   clientId: process.env.clientId,
   clientSecret: process.env.clientSecret,
@@ -38,6 +32,25 @@ controller.setupWebserver(process.env.port, function (err, webserver) {
   });
 
   herokuKeepalive = new HerokuKeepalive(controller);
+
+  // image proxy
+  controller.webserver.get('/image', function (req, res) {
+    console.log(req.originalUrl);
+    var imageUrl = req.query.url;
+    if (!imageUrl) {
+      res.set('Content-Type', 'text/plain');
+      res.send('Error');
+      return;
+    }
+    request.head(imageUrl, function (err, resp, _) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      res.set('Content-Type', resp.headers['content-type']);
+      request(imageUrl).pipe(res);
+    });
+  });
 });
 
 // just a simple way to make sure we don't
@@ -49,18 +62,16 @@ function trackBot(bot) {
 
 // cron
 var quizCron = {};
+var threeMinCron = {};
 
 controller.on('create_bot', function (bot, config) {
-
   if (_bots[bot.config.token]) {
     // already online! do nothing.
   } else {
     bot.startRTM(function (err) {
-
       if (!err) {
         trackBot(bot);
       }
-
       bot.startPrivateConversation({user: config.createdBy}, function (err, convo) {
         if (err) {
           console.log(err);
@@ -69,7 +80,6 @@ controller.on('create_bot', function (bot, config) {
           convo.say('You must now /invite me to a channel so that I can be of use!');
         }
       });
-
     });
   }
 });
@@ -101,14 +111,24 @@ controller.on('rtm_open', function (bot) {
   herokuKeepalive.start();
 
   // start cron
-  console.log('** Start quiz cron.');
+  console.log('** Start crons.');
   quizCron = new cronJob({
-    cronTime: '0 0 9,13,18 * * 1-5',
+    cronTime: '0 0 9 * * 1-5',
     onTick: function () {
       generateQuiz(function (reply) {
         reply.channel = 'ipa-nw';
         bot.say(reply);
       });
+    },
+    start: true,
+    timeZone: process.env.TZ
+  });
+  threeMinCron = new cronJob({
+    cronTime: '0 0 13,18 * * 1-5',
+    onTick: function () {
+      var no = controller.storage.teams.get('articleNo') || 0;
+      post3minArticle(bot, no);
+      controller.storage.teams.save({id: 'articleNo', 'no': no + 1});
     },
     start: true,
     timeZone: process.env.TZ
@@ -130,6 +150,10 @@ controller.hears('quiz', ['direct_message', 'direct_mention'], function (bot, me
   generateQuiz(function (reply) {
     bot.reply(message, reply);
   });
+});
+controller.hears('3min', ['direct_message', 'direct_mention'], function (bot, message) {
+  var no = Math.floor(Math.ramdom() * 81);
+  post3minArticle(bot, no, message);
 });
 
 controller.on('interactive_message_callback', function (bot, message) {
@@ -159,39 +183,95 @@ controller.on('interactive_message_callback', function (bot, message) {
 });
 
 var generateQuiz = function (cb) {
-  cheerio.fetch('http://www.nw-siken.com/', null, function (er, $$) {
+  var baseUri = 'http://www.nw-siken.com/';
+  cheerio.fetch(baseUri, null, function (er, $$) {
     if (er) {
-      console.log('Could not access www.nw-siken.com');
+      console.log('Could not access ' + baseUri);
       return;
     }
 
-    var link = 'http://www.nw-siken.com/' + $$('div.ansbg + div.img_margin > a').attr('href');
+    var link = baseUri + $$('div.ansbg + div.img_margin > a').attr('href');
     cheerio.fetch(link, null, function (err, $) {
       var no = $('.qno').text();
       var q = $('.qno + div').text() + '\n\n';
       var anss = [];
+      var choiseByImg = false;
       $('.selectBtn').each(function () {
         var btn = $(this);
-        var txt = btn.prev('div');
-        q += btn.text() + (txt ? ('.  ' + txt.text()) : '') + '\n';
-        anss.push({
+        var ans = {
           'type': 'button',
           'name': btn.attr('id') ? 'collect' : 'wrong',
-          'text': btn.find('button').text()
+          'text': btn.find('button').text(),
+          'value': btn.find('button').text()
+        };
+
+        var img = btn.prev('div').find('img');
+        if (!img.length) {
+          q += btn.text() + '.  ' + btn.prev('div').text() + '\n';
+          anss.push(ans);
+        } else {
+          choiseByImg = true;
+          // as other attachment
+          var url = link.replace(/am2_\d+\.html/i, img.attr('src'));
+          var att = {
+            'text': btn.find('button').text(),
+            'fallback': url,
+            'image_url': process.env.HEROKU_URL + 'image?url=' + url,
+            'color': '#808080',
+            'callback_id': 'db_answer',
+            'actions': [ans]
+          };
+          anss.push(att);
+        }
+      });
+
+      var attachments = [];
+      attachments.push({
+        'title': q,
+        'text': '\n\n詳細や画像が表示されていない場合はこちらへ\n' + link,
+        'fallback': q,
+        'callback_id': 'db_answer',
+        'color': 'good'
+      });
+
+      // show images
+      $('.qno + div').find('.img_margin').each(function () {
+        var d = $(this);
+        var url = link.replace(/am2_\d+\.html/i, d.find('img').attr('src'));
+        attachments.push({
+          'text': no,
+          'fallback': url,
+          'color': '#808080',
+          'image_url': process.env.HEROKU_URL + 'image?url=' + url,
         });
       });
 
+      // answers
+      if (choiseByImg) {
+        attachments = attachments.concat(anss);
+      } else {
+        var a = attachments[0];
+        a.actions = anss;
+        attachments[0] = a;
+      }
+
       cb({
         'text': no,
-        'attachments': [{
-          'title': q,
-          'text': '\n\n詳細や画像が表示されていない場合はこちらへ\n' + link,
-          'fallback': '失敗しました。',
-          'callback_id': 'nw_answer',
-          'color': '#808080',
-          'actions': anss
-        }]
+        'attachments': attachments
       });
     });
   });
+};
+
+var post3minArticle = function (bot, no, msg) {
+  var padded = no === 0 ? 0 : ('00' + no).slice(-2);
+  var text = {
+    'text': 'まずは基礎から!\n*第 ' + no + '/81 回目* http://www5e.biglobe.ne.jp/aji/3min/' + padded + '.html'
+  };
+  if (msg) {
+    bot.reply(msg, text);
+  } else {
+    text.channel = 'ipa-nw';
+    bot.say(text);
+  }
 };
