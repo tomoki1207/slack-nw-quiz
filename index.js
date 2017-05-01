@@ -126,9 +126,20 @@ controller.on('rtm_open', function (bot) {
   threeMinCron = new cronJob({
     cronTime: '0 0 13,18 * * 1-5',
     onTick: function () {
-      var no = controller.storage.teams.get('articleNo').no || 0;
-      post3minArticle(bot, no);
-      controller.storage.teams.save({id: 'articleNo', 'no': no + 1});
+      controller.storage.teams.all(function (err, teams) {
+        if (err) {
+          throw new Error(err);
+        }
+        for (var t in teams) {
+          var team = teams[t];
+          if (team.bot) {
+            var no = team.articleNo || 0;
+            post3minArticle(bot, no);
+            team.articleNo = no + 1;
+            controller.storage.teams.save(team);
+          }
+        }
+      });
     },
     start: true,
     timeZone: process.env.TZ
