@@ -126,7 +126,7 @@ controller.on('rtm_open', function (bot) {
   threeMinCron = new cronJob({
     cronTime: '0 0 13,18 * * 1-5',
     onTick: function () {
-      var no = controller.storage.teams.get('articleNo') || 0;
+      var no = controller.storage.teams.get('articleNo').no || 0;
       post3minArticle(bot, no);
       controller.storage.teams.save({id: 'articleNo', 'no': no + 1});
     },
