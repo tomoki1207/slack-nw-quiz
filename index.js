@@ -278,14 +278,26 @@ var generateQuiz = function (cb) {
 };
 
 var post3minArticle = function (bot, no, msg) {
+  if (81 < no) {
+    return;
+  }
   var padded = no === 0 ? 0 : ('00' + no).slice(-2);
   var text = {
-    'text': 'まずは基礎から!\n*第 ' + no + '/81 回目* http://www5e.biglobe.ne.jp/aji/3min/' + padded + '.html'
+    'text': 'まずは基礎から!',
+    'icon_url': 'https://image.freepik.com/free-icon/no-translate-detected_318-69307.jpg',
+    'attachments': [{
+      'text': '*第 ' + no + '/81 回目*',
+      'title': '今日の3分間ネットワーク',
+      'title_link': 'http://www5e.biglobe.ne.jp/aji/3min/' + padded + '.html',
+      'color': '#FFFF20'
+    }]
   };
   if (msg) {
+    console.log('reply:' + text);
     bot.reply(msg, text);
   } else {
     text.channel = 'ipa-nw';
+    console.log('say:' + text);
     bot.say(text);
   }
 };
