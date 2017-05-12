@@ -286,8 +286,8 @@ var post3minArticle = function (bot, no, msg) {
     'text': 'まずは基礎から!',
     'icon_url': 'https://image.freepik.com/free-icon/no-translate-detected_318-69307.jpg',
     'attachments': [{
-      'text': '*第 ' + no + '/81 回目*',
-      'title': '今日の3分間ネットワーク',
+      'text': '(No.' + no + '/81)',
+      'title': '3分間 NetWorking',
       'title_link': 'http://www5e.biglobe.ne.jp/aji/3min/' + padded + '.html',
       'color': '#FFFF20'
     }]
