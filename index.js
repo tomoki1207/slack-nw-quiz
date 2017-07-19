@@ -62,7 +62,6 @@ function trackBot(bot) {
 
 // cron
 var quizCron = {};
-var threeMinCron = {};
 
 controller.on('create_bot', function (bot, config) {
   if (_bots[bot.config.token]) {
@@ -113,32 +112,11 @@ controller.on('rtm_open', function (bot) {
   // start cron
   console.log('** Start crons.');
   quizCron = new cronJob({
-    cronTime: '0 0 9 * * 1-5',
+    cronTime: '0 0 9,13,18 * * 1-5',
     onTick: function () {
       generateQuiz(function (reply) {
         reply.channel = 'ipa-nw';
         bot.say(reply);
-      });
-    },
-    start: true,
-    timeZone: process.env.TZ
-  });
-  threeMinCron = new cronJob({
-    cronTime: '0 0 13,18 * * 1-5',
-    onTick: function () {
-      controller.storage.teams.all(function (err, teams) {
-        if (err) {
-          throw new Error(err);
-        }
-        for (var t in teams) {
-          var team = teams[t];
-          if (team.bot) {
-            var no = team.articleNo || 0;
-            post3minArticle(bot, no);
-            team.articleNo = no + 1;
-            controller.storage.teams.save(team);
-          }
-        }
       });
     },
     start: true,
@@ -154,9 +132,6 @@ controller.on('rtm_close', function (bot) {
   console.log('** Stop crons.');
   if (quizCron) {
     quizCron.stop();
-  }
-  if (threeMinCron) {
-    threeMinCron.stop();
   }
 });
 
